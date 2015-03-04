@@ -67,7 +67,7 @@ for w = 1:width
         end
     end
 end
-
+%this is molly hello
 box = zeros(length-1,width-1,4);
 for w = 1:width-1
     for l = 1:length-1
