@@ -1,10 +1,11 @@
 important variables:
 w: width of the plate
 l: length of the plate
-n: current node
-MAT: the main, big matrix
-C: the smaller, constant matrix
-T: the matrix for current temperatures
+n: current node (1 to lw)
+edge: the edges bordered by the current node (1 indicates yes and 0 indicates no, top=0, right=1, bottom=2, left=3)
+MAT: the main, big matrix (lw by lw)
+C: the smaller, constant matrix (l by w)
+T: the matrix for current temperatures (l by w)
 Q: Boundary condition array, each value corresponds to the flux through an
 	edge ie [q_top, q_right, q_bottom, q_left] where if the edge is constant
 	T then the corresponding value is 0 in the array
@@ -15,21 +16,21 @@ functions:
 check_location:
 	checks the location of the node
 	inputs: w, l, n
-	output: interior, top, bottom, left, right, top_left, top_right, bottom_left, bottom_right
+	output: edge matrix
 interior_step:
 	appends rows to the matrices for interior nodes
 	inputs: relevant constants for equation, MAT, C, T, n
 	output: updated matrices
 
-edge_step_top:
-	appends rows to the matrices for the edge nodes for top edge, 
-	inputs: relevant constants for equation, MAT, C, T, q_top, n
-	output: updates matrices
+edge_step:
+	appends rows to the matrices for the edge nodes 
+	inputs: relevant constants for equation, MAT, C, T, Q, n, edge value
+	output: updated matrices
 
-%the following are the same idea for different edges
-edge_step_right:
-edge_step_bottom:
-edge_step_left:
+corner_step:
+	appends rows to the matrices for the corner nodes
+	inputs: relevant constants for equation, MAT, C, T, Q, n, corner value
+	output: updated matrices
 
 check_location(){
 	%use lori's code
@@ -41,13 +42,15 @@ interior_step(){
 	%append new row to old matrices using command: [old_matrix; new_row]
 }
 
-edge_step_top(){
+edge_step(){
 	%determine neighboring nodes
-	%if q_top == 0, create row for matrices using equation and neighboring nodes
+	%if relevant q value == 0, create row for matrices using equation and neighboring nodes
 	%else, create row for matrices using equation and neighboring nodes
 	%append new row to old matrices using command: [old_matrix; new_row]
 
 }
+
+%same for corner_step()
 
 main(){
 
@@ -58,17 +61,16 @@ main(){
 
 			location = check_location(node)
 
-			if (location == interior){
+			if (sum(edge)==0){
 				interior_step(node)
 			}
 
-			else if (location == top){
-				edge_step_top(node)
+			else if (sum(edge)==1){
+				edge_step(node)
 			}
-			% ... else statements for other edges
-
-			else if (location == top_left){
-				%do something, had to go to grandparents house
+			
+			else if (sum(edge)==2){
+				corner_step(node)
 			}
 		}
 		Temperatures = inv(MAT)*C;
