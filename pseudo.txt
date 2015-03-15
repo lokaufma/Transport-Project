@@ -4,8 +4,8 @@ l: length of the plate
 n: current node (1 to lw)
 edge: the edges bordered by the current node (1 indicates yes and 0 indicates no, top=0, right=1, bottom=2, left=3)
 MAT: the main, big matrix (lw by lw)
-C: the smaller, constant matrix (l by w)
-T: the matrix for current temperatures (l by w)
+C: the smaller, constant matrix (lw)
+T: the matrix for current temperatures (lw)
 Q: Boundary condition array, each value corresponds to the flux through an
 	edge ie [q_top, q_right, q_bottom, q_left] where if the edge is constant
 	T then the corresponding value is 0 in the array
@@ -37,20 +37,108 @@ check_location(){
 }
 
 interior_step(){
-	%determine neighboring nodes
-	%create row for matrices using equation and neighboring nodes
-	%append new row to old matrices using command: [old_matrix; new_row]
+
+	%neighboring nodes: n+1, n-1, n-w, n+w
+
+	%from the equation
+	new_row = zeros(w*l)
+	new_row(n) = 1+4*Fo
+	new_row(n-1) = -Fo
+	new_row(n+1) = -Fo
+	new_row(n-w) = -Fo
+	new_row(n+w) = -Fo
+
+	%append the new row
+	[MAT; new_row]
+
+	%the constant value equals the old temperature
+	C(n) = T(n)
+
 }
 
 edge_step(){
-	%determine neighboring nodes
-	%if relevant q value == 0, create row for matrices using equation and neighboring nodes
-	%else, create row for matrices using equation and neighboring nodes
-	%append new row to old matrices using command: [old_matrix; new_row]
 
+	%create new row, this is all from eqn in sheet he gave us
+	%depending on edge, one node doesn't exist so don't add anything
+	%to new row, but it does affect the constant matrix C
+
+	new_row = zeros(w*l)
+	new_row(n) = 1+4*Fo
+	if top {
+		new_row(n-1) = -Fo
+		new_row(n+1) = -Fo
+		new_row(n+w) = -Fo
+	}
+	if right {
+		new_row(n-1) = -Fo
+		new_row(n-w) = -Fo
+		new_row(n+w) = -Fo
+	}
+	if bottom {
+		new_row(n-1) = -Fo
+		new_row(n+1) = -Fo
+		new_row(n-w) = -Fo
+	}
+	if left {
+		new_row(n+1) = -Fo
+		new_row(n-w) = -Fo
+		new_row(n+w) = -Fo
+	}
+	[MAT; new_row]
+
+	%if there's no heat flow, then the "non-existent node" temperature in given equation
+	%is just a constant temperature and the equation can be rearranged s.t. the constant
+	%side of the equation equals this
+	%note, I think you can do this all in terms of the normalized temperature
+
+	if const temp	{
+		C(n) = T(n) + Fo
+	}
+
+	% If there's heat flow, the heat flow is s.t. it increases normalized temperature
+	% by .005 units per time step, thus q*Fo = .005*T(n) 
+
+	if heat flow {
+		C(n) = T(n) + .005*T(n)
+	}
 }
 
-%same for corner_step()
+corner_step(){
+	%note this is all the same as the edge step except adapting
+	%for having two edges
+
+	new_row = zeros(w*l)
+	new_row(n) = 1+4*Fo
+
+	if top_left {
+		new_row(n+1) = -Fo
+		new_row(n+w) = -Fo
+	}
+	if top_right {
+		new_row(n-1) = -Fo
+		new_row(n+w) = -Fo
+	}
+	if bottom_left {
+		new_row(n+1) = -Fo
+		new_row(n-w) = -Fo
+	}
+	if bottom_right {
+		new_row(n+1) = -Fo
+		new_row(n-w) = -Fo
+	}
+	[MAT; new_row]
+
+	if const temp both sides	{
+		C(n) = T(n) + 2*Fo
+	}
+	
+	if heat flow both sides {
+		C(n) = T(n) + 2*.005*T(n)
+	}
+	if heat flow and const T {
+		C(n) = T(n) + Fo + 2*.005*T(n)
+	}
+}
 
 main(){
 
@@ -58,7 +146,6 @@ main(){
 
 	for (time steps){
 		for(number of nodes){
-
 			location = check_location(node)
 
 			if (sum(edge)==0){
@@ -78,3 +165,6 @@ main(){
 		% rearrange temperature matrix and graph
 	}
 }
+
+
+
