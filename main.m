@@ -1,5 +1,5 @@
 # Transport-Project
-%That project we have to do for transport
+% That project we have to do for transport
 
 
 width = 6;
