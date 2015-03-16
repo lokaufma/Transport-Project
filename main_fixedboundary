@@ -1,0 +1,134 @@
+% Transport Project
+% 23 March 2015
+% Max Payson, Lori Kaufman, Sam Faucher, Molly Wolf
+
+% User can choose width, length, steps, and Fo (dimensionless time) per step.
+
+length = 20;
+width = 40;
+steps=100;
+Fo=0.25;
+
+Tleft=1;  % Temp boundary conditions.  This code does not work for flux boundary conditions.
+Tright=1;
+Ttop=1;
+Tbottom=1;
+
+n=width*length;
+T=zeros(steps,n);  % Initialize temperature matrix
+% T(1,:)=0.5  % If you wanted to specify other initial temp, you could here.
+
+cat=zeros(n);  % Initialize matrix that specifies category of point.  
+% cat=0 interior; cat=1 top left; cat=2 top; cat=3 top right; cat=4 right; 
+% cat=5 bottom right; cat=6 bottom; cat=7 bottom left; cat=8 left; 
+
+
+%  Categorize points as top, bottom, left, right, top left, top right,
+%  bottom left, bottom right
+
+cat(1)=1;  % Top left point
+cat(n)=5;  % Bottom right point
+cat(width)=3;  % Top right point
+cat(n-width+1)=7;  % Bottom left point
+cat(2:width-1)=2; % Top points
+cat(n-width+2:n-1)=6; % Bottom points
+cat(width+1:width:n-2*width+1)=8; % Left points
+cat(2*width:width:n-width)=4; % Right points
+
+% Initialize A and C matrices, similar to past pset.
+
+A=zeros(n,n);
+C=zeros(n,1);  
+
+for j=1:steps-1  % For each temperature step
+    for i=1:n  % For each point
+        if cat(i)==0   
+            A(i,i-width)=-Fo;  % These five lines are from Equation 2 in Osuji's problem statement.
+            A(i,i+width)=-Fo;
+            A(i,i-1)=-Fo;
+            A(i,i+1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i);  % The constant equals the previous temperature value at that point.
+        end
+        if cat(i)==1
+            A(i,i+width)=-Fo;  % These four lines (and all of the A lines after this) are modified versions
+                               % of Equation 2, with boundary conditions
+                               % substituted for neighboring T values.
+            A(i,i+1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Ttop+Fo*Tleft;
+        end
+        if cat(i)==2
+            A(i,i+width)=-Fo;
+            A(i,i-1)=-Fo;
+            A(i,i+1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Ttop;
+        end
+        if cat(i)==3 
+            A(i,i+width)=-Fo;
+            A(i,i-1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Ttop+Fo*Tright;
+        end
+        if cat(i)==4
+            A(i,i-width)=-Fo;  
+            A(i,i+width)=-Fo;
+            A(i,i-1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Tright;
+        end
+        if cat(i)==5
+            A(i,i-width)=-Fo;  
+            A(i,i-1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Tright+Fo*Tbottom;
+        end
+        if cat(i)==6
+            A(i,i-width)=-Fo;  
+            A(i,i-1)=-Fo;
+            A(i,i+1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Tbottom;
+        end
+        if cat(i)==7
+            A(i,i-width)=-Fo;  
+            A(i,i+1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Tbottom+Fo*Tleft;
+        end
+        if cat(i)==8
+            A(i,i-width)=-Fo;  
+            A(i,i+width)=-Fo;
+            A(i,i+1)=-Fo;
+            A(i,i)=1+4*Fo;
+            C(i,1)=T(j,i)+Fo*Tleft;
+        end
+    end
+    temp=inv(A)*C;  % To calculate the temp at the next time step, multiply inverse of A matrix by C.
+    T(j+1,:)=temp(:);  % Store it in the next row of the T matrix.
+end
+
+% Now we have a T matrix that shows the progression of temperature.
+
+
+% Reformat 2D T matrix to 3D T matrix, displayT.
+
+displayT=zeros(length,width,steps);
+for k=1:steps
+    for l=1:length
+        displayT(l,:,k)=T(k,(l-1)*width+1:l*width);
+    end
+end
+
+
+% Plot displayT over time.
+
+for m=1:steps
+    imagesc(displayT(:,:,m));
+    tau=(m-1)*Fo;
+    tau=num2str(tau);
+    text=['Fo = ' tau];
+    title(text,'fontsize',24);
+    pause(.1)
+end
