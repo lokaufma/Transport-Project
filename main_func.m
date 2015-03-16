@@ -59,7 +59,7 @@ function [] = main_func()
 
     q = [0,0,0,0] %if = 0, no heat flow and bc is T = 1
 
-    n=width*length;
+    n=w*l;
     T=zeros(steps,n);  % Initialize temperature matrix
     % T(1,:)=0.5  % If you wanted to specify other initial temp, you could here.
 
@@ -84,7 +84,7 @@ function [] = main_func()
 
             %edge node
             elseif mod(loc(i), 2) == 0
-                [MAT; edge_step(w, l, i, Fo)];
+                [MAT; edge_step(w, l, i, Fo, loc)];
 
                 %no heat flow for relevant edge
                 if q(loc(i)/2) == 0
