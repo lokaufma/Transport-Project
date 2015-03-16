@@ -79,12 +79,12 @@ function [] = main_func()
 
             %interior node
             if loc(i)==0   
-                [MAT; interior_step(w,l, i, Fo)];
+                MAT(i,:) = interior_step(w,l, i, Fo);
                 C(i,1)=T(j,i);  % The constant equals the previous temperature value at that point.
 
             %edge node
             elseif mod(loc(i), 2) == 0
-                [MAT; edge_step(w, l, i, Fo, loc)];
+                MAT(i,:) = edge_step(w, l, i, Fo, loc);
 
                 %no heat flow for relevant edge
                 if q(loc(i)/2) == 0
