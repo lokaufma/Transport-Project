@@ -48,6 +48,48 @@ function[new_row] = edge_step(w,l,i, Fo, loc)
     end
 end
 
+function[new_row] = edge_step(w,l,i,Fo,loc)
+    new_row = zeros(w*l);
+    new_row(i) = 1+4*Fo;
+    if loc(i) == 1
+        new_row(i+1) = -Fo;
+        new_row(i+w) = -Fo;
+    elseif loc(i) == 3
+        new_row(n-1) = -Fo;
+        new_row(n+w) = -Fo;
+    elseif loc(i) == 5
+        new_row(n-1) = -Fo;
+        new_row(n-w) = -Fo;
+    elseif loc(i) == 7
+        new_row(n+1) = -Fo;
+        new_row(n-w) = -Fo;
+    end
+end
+
+function[const] = corner_stepConst(corner, Fo, q, temp)
+    if corner == 1
+        q1 = q(1);
+        q2 = q(4);
+    elseif corner == 3
+        q1 = q(1);
+        q2 = q(2);
+    elseif corner == 5
+        q1 = q(2);
+        q2 = q(3);
+    elseif corner == 7
+        q1 = q(3);
+        q2 = q(4);
+    end
+
+    if q1 == 0 & q2 == 0
+        const = temp + 2*Fo;
+    elseif q1 ~= 0 & q2 ~= 0
+        const = temp + 2*.005*temp;
+    else
+        const = temp + Fo + .005*temp;
+    end
+end
+
 
 function [] = main_func()
     % User can choose width, length, steps, and Fo (dimensionless time) per step.
@@ -93,69 +135,13 @@ function [] = main_func()
                 else
                     C(i,1) = T(j,i) + .005*T(j,i);
                 end
-            end
-
-
-
-            %END OF MAX'S CODE
-
-
-            if cat(i)==1
-                A(i,i+width)=-Fo;  % These four lines (and all of the A lines after this) are modified versions
-                                   % of Equation 2, with boundary conditions
-                                   % substituted for neighboring T values.
-                A(i,i+1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Ttop+Fo*Tleft;
-            end
-            if cat(i)==2
-                A(i,i+width)=-Fo;
-                A(i,i-1)=-Fo;
-                A(i,i+1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Ttop;
-            end
-            if cat(i)==3 
-                A(i,i+width)=-Fo;
-                A(i,i-1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Ttop+Fo*Tright;
-            end
-            if cat(i)==4
-                A(i,i-width)=-Fo;  
-                A(i,i+width)=-Fo;
-                A(i,i-1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Tright;
-            end
-            if cat(i)==5
-                A(i,i-width)=-Fo;  
-                A(i,i-1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Tright+Fo*Tbottom;
-            end
-            if cat(i)==6
-                A(i,i-width)=-Fo;  
-                A(i,i-1)=-Fo;
-                A(i,i+1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Tbottom;
-            end
-            if cat(i)==7
-                A(i,i-width)=-Fo;  
-                A(i,i+1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Tbottom+Fo*Tleft;
-            end
-            if cat(i)==8
-                A(i,i-width)=-Fo;  
-                A(i,i+width)=-Fo;
-                A(i,i+1)=-Fo;
-                A(i,i)=1+4*Fo;
-                C(i,1)=T(j,i)+Fo*Tleft;
+            
+            else
+                MAT(i,:) = corner_step(w, l, i, Fo, loc);
+                C(i,1) = corner_stepConst(loc(i), Fo, q, T(j,i));
             end
         end
-        temp=inv(A)*C;  % To calculate the temp at the next time step, multiply inverse of A matrix by C.
+        temp=inv(MAT)*C;  % To calculate the temp at the next time step, multiply inverse of A matrix by C.
         T(j+1,:)=temp(:);  % Store it in the next row of the T matrix.
     end
 
