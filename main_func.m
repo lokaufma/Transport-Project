@@ -2,6 +2,10 @@
 % 23 March 2015
 % Max Payson, Lori Kaufman, Sam Faucher, Molly Wolf
 
+% This takes Sam's code and defines a matrix "loc" that categorizes the
+% location of each node
+% loc=0 interior; loc=1 top left; loc=2 top; loc=3 top right; loc=4 right; 
+% loc=5 bottom right; loc=6 bottom; loc=7 bottom left; loc=8 left; 
 function[loc] = set_location(w, l, n)
     loc = zeros(n);
     loc(1)=1;  % Top left point
@@ -14,6 +18,9 @@ function[loc] = set_location(w, l, n)
     loc(2*width:width:n-width)=4; % Right points
 end
 
+% This creates a new row to be added to the temperature coefficient matrix corresponding
+% to an interior node. The values are from Sam's code and the given
+% equation for an interior node. The constant vector is defined in main.
 function[new_row] = interior_step(w, l, i, Fo)
     new_row = zeros(w*l);
     new_row(i) = 1+4*Fo;
@@ -23,50 +30,70 @@ function[new_row] = interior_step(w, l, i, Fo)
     new_row(i+w) = -Fo;
 end
 
-function[new_row] = edge_step(w,l,i, Fo, loc)
+% This creates a new row to be added to the temperature coefficient matrix corresponding
+% to an edge node. Here, the given equation is adapted such that the "node" that exists outside
+% the plate is not included and is rather represented in the constant vector defined in main.
+% Note pos is location (loc(i)) for the current node
+function[new_row] = edge_step(w,l,i, Fo, pos)
+
+    % Initialize new row
     new_row = zeros(w*l);
+
+    % The given node "i" always has the same coefficient
     new_row(i) = 1+4*Fo;
-    if loc(i) == 2
+
+    % If the top edge, don't include the non-existent top node
+    if pos == 2
         new_row(i-1) = -Fo
         new_row(i+1) = -Fo
         new_row(i+w) = -Fo
-
-    elseif loc(i) == 4
+    % If right edge, don't include the non-existent right node
+    elseif pos == 4
         new_row(i-1) = -Fo
         new_row(i-w) = -Fo
         new_row(i+w) = -Fo
-
-    elseif loc(i) == 6
+    % If the bottom edge, don't include the non-existent bottom node
+    elseif pos == 6
         new_row(i-1) = -Fo
         new_row(i+1) = -Fo
         new_row(i-w) = -Fo
-
-    elseif loc(i) == 8
+    % If the left edge, don't include the non-existent left node
+    elseif pos == 8
         new_row(i+1) = -Fo
         new_row(i-w) = -Fo
         new_row(i+w) = -Fo
     end
 end
 
-function[new_row] = edge_step(w,l,i,Fo,loc)
+% This creates a new row to be added to the temperature coefficient matrix corresponding
+% to a corner node. Here, the given equation is adapted such that the "nodes" that exist outside
+% the plate are not included and are rather represented in the constant vector defined in main.
+% Note pos is location (loc(i)) for the current node
+function[new_row] = edge_step(w,l,i,Fo,pos)
     new_row = zeros(w*l);
     new_row(i) = 1+4*Fo;
-    if loc(i) == 1
+    if pos == 1
         new_row(i+1) = -Fo;
         new_row(i+w) = -Fo;
-    elseif loc(i) == 3
+    elseif pos == 3
         new_row(n-1) = -Fo;
         new_row(n+w) = -Fo;
-    elseif loc(i) == 5
+    elseif pos == 5
         new_row(n-1) = -Fo;
         new_row(n-w) = -Fo;
-    elseif loc(i) == 7
+    elseif pos == 7
         new_row(n+1) = -Fo;
         new_row(n-w) = -Fo;
     end
 end
 
+% This defines the relevant constant for the constant vector corresponding 
+% to a corner node. The constant has three options, either heat flow from
+% both sides, constant temperature from both sides, or both
+% Note temperature equals the previous temperature at the node (ie T(j,i))
+% And corner represents the location (loc(i))
 function[const] = corner_stepConst(corner, Fo, q, temp)
+    % Determine whether there is heat flow at each edge for the corner
     if corner == 1
         q1 = q(1);
         q2 = q(4);
@@ -81,10 +108,13 @@ function[const] = corner_stepConst(corner, Fo, q, temp)
         q2 = q(4);
     end
 
+    % If constant temperature on both sides
     if q1 == 0 & q2 == 0
         const = temp + 2*Fo;
+    % Heat flow on both sides
     elseif q1 ~= 0 & q2 ~= 0
         const = temp + 2*.005*temp;
+    % heat flow one side constant temperature other side
     else
         const = temp + Fo + .005*temp;
     end
@@ -93,26 +123,26 @@ end
 
 function [] = main_func()
     % User can choose width, length, steps, and Fo (dimensionless time) per step.
-
     l = 20;
     w = 40;
     steps=100;
     Fo=0.25;
 
-    q = [0,0,0,0] %if = 0, no heat flow and bc is T = 1
+    % This defines the q boundary conditions, where a value of 0 indicates no heat
+    % flow and a value other than 0 indicates heat flow
+    % q(1) = top, q(2) = right, q(3) = bottom, q(4) = left
+    q = [0,0,0,0]
 
     n=w*l;
     T=zeros(steps,n);  % Initialize temperature matrix
     % T(1,:)=0.5  % If you wanted to specify other initial temp, you could here.
 
-    loc = set_location(w, l, n);  % Initialize matrix that specifies category of point.  
-    % cat=0 interior; cat=1 top left; cat=2 top; cat=3 top right; cat=4 right; 
-    % cat=5 bottom right; cat=6 bottom; cat=7 bottom left; cat=8 left; 
+    % Initialize matrix that specifies category of point.
+    loc = set_location(w, l, n);    
     %  Categorize points as top, bottom, left, right, top left, top right,
     %  bottom left, bottom right
 
-    % Initialize A and C matrices, similar to past pset.
-
+    % Initialize MAT, the coefficient matrix, and C, the constnat matrix, similar to past pset.
     MAT=zeros(n,n);
     C=zeros(n,1);  
 
@@ -121,24 +151,31 @@ function [] = main_func()
 
             %interior node
             if loc(i)==0   
-                MAT(i,:) = interior_step(w,l, i, Fo);
+                MAT(i,:) = interior_step(w,l, i, Fo); % Add coefficients to temp coeff matrix
                 C(i,1)=T(j,i);  % The constant equals the previous temperature value at that point.
 
-            %edge node
+            %edge node since edges are all even locations
             elseif mod(loc(i), 2) == 0
-                MAT(i,:) = edge_step(w, l, i, Fo, loc);
+                MAT(i,:) = edge_step(w, l, i, Fo, loc(i)); % Add coefficients to temp coeff matrix
 
-                %no heat flow for relevant edge
+                % no heat flow for relevant edge, the location divided by 2 gives
+                % the correct index for the boundary condition vector q
+                % the boundary conditions are substituted for neighboring T values
+                % note T will always equal 1 if we assume T is the dimensionless T
                 if q(loc(i)/2) == 0
                     C(i,1) = T(j,i) + Fo;
-                %heat flow for relevant edge
+
+                % heat flow for relevant edge
+                % If there's heat flow, the heat flow is s.t. it increases normalized temperature
+                % by .005 units per time step, thus q*Fo = .005*T(n) 
                 else
                     C(i,1) = T(j,i) + .005*T(j,i);
                 end
             
+            %corner node
             else
-                MAT(i,:) = corner_step(w, l, i, Fo, loc);
-                C(i,1) = corner_stepConst(loc(i), Fo, q, T(j,i));
+                MAT(i,:) = corner_step(w, l, i, Fo, loc); % Add coefficients to temp coefficient matrix
+                C(i,1) = corner_stepConst(loc(i), Fo, q, T(j,i)); % Define relevant constant in constant vector
             end
         end
         temp=inv(MAT)*C;  % To calculate the temp at the next time step, multiply inverse of A matrix by C.
