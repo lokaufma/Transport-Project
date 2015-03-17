@@ -2,25 +2,17 @@
 % 23 March 2015
 % Max Payson, Lori Kaufman, Sam Faucher, Molly Wolf
 
-% Function: set_location()
-% This function creates a matrix loc that indicates a category for each point
-% in the matrix that indicates which edges that point borders.
-% Inputs: width (w), length (l), and number of points (n) in matrix
-% Outputs: location matrix (loc) defining a type for each matrix point:
-% 	loc=0 interior; loc=1 top-left; loc=2 top; loc=3 top-right; loc=4 right 
-% 	loc=5 bottom-right; loc=6 bottom; loc=7 bottom-left; loc=8 left.
-
 function [] = main_func()
     % Define width, length, number of time steps, and 
     % Fourier number Fo (dimensionless time) per step
-    l = 20;
-    w = 40;
+    l = 40;
+    w = 20;
     steps = 100;
     Fo = 0.25;
 
     % Define the heat flow boundary conditions (q=0 represents no heat flow)
     % q(1) = top, q(2) = right, q(3) = bottom, q(4) = left
-    q = [0,0,0,0];
+    q = [1,0,0,0];
 
     n=w*l; % Total number of matrix points
     T = zeros(steps,n);  % Initialize temperature matrix
@@ -33,7 +25,7 @@ function [] = main_func()
     MAT = zeros(n,n);
     C = zeros(n,1);  
 
-    for j = 1:steps-1  % Step through time
+    for j = 1:steps  % Step through time
         for i = 1:n  % Step through the temperature matrix
             if loc(i)==0  % Interior node
                 MAT(i,:) = interior_step(w, n, i, Fo); % Add row to MAT
@@ -43,7 +35,7 @@ function [] = main_func()
                 if q(loc(i)/2) == 0 % No heat flow through this edge
                     C(i,1) = T(j,i) + Fo;
                 else % There is heat flow through this edge
-                    C(i,1) = T(j,i) + .05*T(j,i); % Increase .05 per time step 
+                    C(i,1) = T(j,i) + .05*T(j,i) + Fo; % Increase .05 per time step 
                 end
             else % Corner node
                 MAT(i,:) = corner_step(w, n, i, Fo, loc(i));
@@ -54,19 +46,18 @@ function [] = main_func()
         temp = MAT\C;  % Calculate temperature at next time step
         T(j+1,:) = temp(:);  % Store calculated temperature in T matrix
     end
-
     % Reformat 2D T matrix to 3D temperature matrix displayT
-
-    displayT = zeros(l,w,steps);
-    for k=1:steps % Step through time
+    
+    %assumes initial T distribution is all equal to 0
+    displayT = zeros(l,w,steps+1);
+    for k=2:steps+1 % Step through time
         for r=1:l % Step through rows
             displayT(r,:,k) = T(k,r*w-w+1:r*w);
         end
     end
-
+    
     % Plot displayT over time
-
-    for m = 1:steps
+    for m = 1:steps+1
         imagesc(displayT(:,:,m));
         tau = (m-1)*Fo;
         tau = num2str(tau);
@@ -75,6 +66,14 @@ function [] = main_func()
         pause(.1)
     end
 end
+
+% Function: set_location()
+% This function creates a matrix loc that indicates a category for each point
+% in the matrix that indicates which edges that point borders.
+% Inputs: width (w), length (l), and number of points (n) in matrix
+% Outputs: location matrix (loc) defining a type for each matrix point:
+%   loc=0 interior; loc=1 top-left; loc=2 top; loc=3 top-right; loc=4 right 
+%   loc=5 bottom-right; loc=6 bottom; loc=7 bottom-left; loc=8 left.
 
 function[loc] = set_location(w, n)
     loc = zeros(n);
@@ -187,8 +186,8 @@ function[const] = corner_stepConst(corner, Fo, q, temp)
     if q1 == 0 && q2 == 0 % (1) Constant temperature on both sides
         const = temp + 2*Fo;
     elseif q1 ~= 0 && q2 ~= 0 % (2) Heat flow on both sides
-        const = temp + 2*.05*temp;
+        const = temp + 2*.05*temp + 2*Fo;
     else % (3) Heat flow on one side and constant temperature on the other
-        const = temp + Fo + .05*temp;
+        const = temp + 2*Fo + .05*temp;
     end
 end
