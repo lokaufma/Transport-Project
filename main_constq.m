@@ -2,7 +2,7 @@
 % 23 March 2015
 % Max Payson, Lori Kaufman, Sam Faucher, Molly Wolf
 
-function [] = main_func()
+function [] = main_constq()
 % Define width, length, number of time steps, and
 % Fourier number Fo (dimensionless time) per step
 l = 25;
