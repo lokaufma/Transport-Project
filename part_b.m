@@ -15,12 +15,13 @@ function[] = part_b()
 	% Fill in the values for the temperature matrix
 	for i = 1:w
 		for j = 1:l
-			T(i,j) = summation(i, j, n, q, w, l);
+			T(j, i) = summation(i, j, n, q, w, l);
 		end
 	end
 
 	% Display T
 	imagesc(T);
+    set(gca, 'YDir', 'normal');
     colorbar;
 end
 
