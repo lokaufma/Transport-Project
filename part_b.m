@@ -1,26 +1,27 @@
-%Perform summation given in problem to calculate temperature 
-%at a given co-ordinate
+% Perform summation given in problem to calculate temperature 
+% at a given co-ordinate
 
 function[] = part_b()
-	%dimensions of the plate
-	w = 20;
-	l = 20;
-	%number of steps to do in the summation
-	n = 10;
-	%heat flow constant
+	% Dimensions of the plate
+	w = 25;
+	l = 25;
+	% Number of steps to do in the summation
+	n = 100;
+	% Heat flow constant
 	q = .05;
 
-	%initialize temperature matrix
+	% Initialize temperature matrix
 	T = zeros(w,l);
-	%fill in the values for the temperature matrix
+	% Fill in the values for the temperature matrix
 	for i = 1:w
 		for j = 1:l
 			T(i,j) = summation(i, j, n, q, w, l);
 		end
 	end
 
-	%display T
+	% Display T
 	imagesc(T);
+    colorbar;
 end
 
 function[val] = summation(x, y, n, q, w, l)
